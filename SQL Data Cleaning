@@ -1,0 +1,219 @@
+SELECT *
+FROM Uncleaned_DS_jobs
+LIMIT 10;
+
+--- create new table to work with
+CREATE TABLE jobs AS
+SELECT *
+FROM Uncleaned_DS_jobs;
+
+--- examine table structure
+PRAGMA table_info(jobs);
+
+
+--- rename columns.
+--- In SQLite, the 'ALTER' statement doesn't support renaming multiple columns at once, so you have to use
+--- individual 'ALTER TABLE' statements for each column.
+
+ALTER TABLE jobs
+    RENAME 'Job Title' TO 'job_title';
+    
+ALTER TABLE jobs
+    RENAME 'Salary Estimate' TO 'salary_estimate';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Job Description' TO 'job_description';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Rating' TO 'rating';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Company Name' TO 'company_name';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Location' TO 'location';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Headquarters' TO 'headquarters';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Size' TO 'size';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Founded' TO 'founded';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Type of ownership' TO 'type_of_ownership';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Industry' TO 'industry';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Sector' TO 'sector';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Revenue' TO 'revenue';
+
+ALTER TABLE jobs
+    RENAME COLUMN 'Competitors' TO 'competitors';
+
+
+-- examine columns
+PRAGMA table_info(jobs);
+
+-- cleaning the job_title column
+--- examine the job_title columb.
+SELECT DISTINCT(job_title), COUNT(*) AS job_count
+FROM jobs
+GROUP BY job_title
+ORDER BY job_count DESC;
+
+-- standardize the data
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Sr Data Scientist', 'Senior Data Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Sr. Data Scientist', 'Senior Data Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title,  'Sr Data Engineer (Sr BI Developer)', 'Senior Data Engineer (Senior BI Developer');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Jr. Business Data Analyst (position added 6/12/2020)', 'Junior Business Data Analyst');
+UPDATE jobs
+SET job_title = REPLACE(job_title,  'Jr. Data Engineer', 'Junior Data Engineer');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Data Scientist 3 (718)', 'Data Scientist 3');
+UPDATE jobs
+SET job_title = REPLACE(job_title, '(Sr.) Data Scientist -', 'Senior Data Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Sr. ML/Data Scientist - AI/NLP/Chatbot', 'Senior ML/Data Scientist - AI/NLP/Chatbot');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Sr Scientist - Extractables & Leachables', 'Senior Scientist - Extractables & Leachables');
+UPDATE jobs
+SET job_title = REPLACE(job_title,  'Sr Data Analyst', 'Senior Data Analyst');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Machine Learning Scientist - Bay Area, CA', 'Machine Learning Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title,  'Sr. Data Scientist II', 'Senior Data Scientist II');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Data Scientist - TS/SCI FSP or CI Required', 'Data Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'ENGINEER - COMPUTER SCIENTIST - RESEARCH COMPUTER SCIENTIST - SIGNAL PROCESSING - SAN ANTONIO OR', 'Research Computing Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Sr. Research Associate/ Scientist, NGS prep & Molecular Genomics', 'Senior Research Associate / Scientist, NGS prep & Molecular Genomics');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Sr. Data Analyst', 'Senior Data Analyst');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'COMPUTER SCIENTIST - ENGINEER - RESEARCH COMPUTER SCIENTIST - TRANSPORTATION TECHNOLOGY', 'Research Computer Scientist');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'ELISA RESEARCH SCIENTIST (CV-15)', 'ELISA Research Scientist (CV-15');
+UPDATE jobs 
+SET job_title = REPLACE(job_title, 'Health Plan Data Analyst, Sr', 'Health Plan Data Analyst, Senior');
+UPDATE jobs
+SET job_title = REPLACE(job_title, 'Machine Learning Engineer, Sr.', 'Machine Learning Engineer, Senior');
+
+
+-- extract unnecessary characters the salary estimate column and convert the datatype.
+--- Add a cleaned salary_estimate column to the table
+ALTER TABLE ds_jobs
+ADD COLUMN cleaned_salary_estimate VARCHAR(11); 
+-- Update the new column with values based on the SUBSTRING() function
+UPDATE ds_jobs
+SET cleaned_salary_estimate = SUBSTRING(salary_estimate, 1, 11);
+-- Delete the salary_estimate column as it is no longer useful.ALTER
+ALTER TABLE ds_jobs
+DROP COLUMN salary_estimate;
+
+
+SELECT cleaned_salary_estimate
+FROM ds_jobs;
+
+--- examine the company_name column
+SELECT company_name
+FROM jobs;
+
+-- clean out unnecessary characters
+SELECT 
+    company_name, 
+    SUBSTR(company_name, 1, LENGTH(company_name) - 4) AS cleaned_company_name
+FROM jobs;
+
+-- update our table
+UPDATE jobs
+SET company_name = SUBSTR(company_name, 1, LENGTH(company_name) - 4);
+
+-- examine the size column
+SELECT size
+FROM jobs;
+
+
+-- fix the size column
+SELECT size, 
+    CASE
+        WHEN size = '-1' THEN '1'
+        ELSE REPLACE(size, ' to ', '-')
+    END AS cleaned_size
+FROM jobs;
+-- update the size column
+UPDATE ds_jobs
+SET size = CASE
+               WHEN size = '-1' THEN '1'
+               ELSE REPLACE(size, ' to ', '-')
+           END;
+
+-- clean type of ownership column
+SELECT type_of_ownership, count(type_of_ownership)
+FROM jobs
+GROUP BY type_of_ownership ;
+
+UPDATE jobs
+SET type_of_ownership = 
+    CASE 
+        WHEN type_of_ownership = 'Company - Private' THEN 'Private Company'
+        WHEN type_of_ownership = 'Company - Public' THEN 'Public Company'
+        WHEN type_of_ownership = -1 THEN 'Unknown'
+        ELSE type_of_ownership -- Keep other values unchanged
+    END;
+
+--- clean the revenue column
+SELECT revenue, REPLACE(revenue, 'to', '-') AS new_revenue
+FROM jobs
+GROUP BY revenue;
+--update the table
+UPDATE jobs
+SET revenue = REPLACE(revenue, 'to', '-');
+
+
+--- clean competitors column
+SELECT competitors, COUNT(competitors)
+FROM ds_jobs
+GROUP BY competitors;
+
+--- most of the values show -1, replace with unknown
+SELECT competitors,
+      CASE WHEN competitors = -1 THEN 'Unknown'
+      ELSE competitors
+      END AS cleaned_competition
+FROM jobs;
+
+--- update TABLE
+UPDATE jobs
+SET competitors = 
+    CASE 
+        WHEN competitors = -1 THEN 'Unknown'
+        ELSE competitors
+    END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
